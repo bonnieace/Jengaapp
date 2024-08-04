@@ -1,0 +1,12 @@
+flutter_native_splash:
+  
+  image: assets/architect.png
+  image_dark: assets/architect.png
+
+  android_12:
+    
+    image: assets/architect.png
+    image_dark: assets/architect.png
+
+ 
+  web: false
