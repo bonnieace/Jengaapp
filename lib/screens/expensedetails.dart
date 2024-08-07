@@ -202,7 +202,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                     itemBuilder: (ctx, index) {
                       final expense = _expenseDetails[index];
                       return ListTile(
-                        leading: Icon(Iconsax.wallet_minus_copy, color: Colors.deepPurple),
+                        leading: Icon(Iconsax.wallet_minus, color: Colors.deepPurple),
                         title: Text(expense['description']),
                         subtitle: Text(
                           DateFormat.yMMMd().format((expense['date'] as Timestamp).toDate()),
