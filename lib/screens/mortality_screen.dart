@@ -96,16 +96,22 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
     dataMap.forEach((key, value) {
       if (value.isFinite) { // Ensure the value is finite
         barChartData.add(
-          BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                y: value.toDouble(),
-                colors: [Colors.lightBlueAccent, Colors.greenAccent],
-              ),
-            ],
-          ),
-        );
+  BarChartGroupData(
+    x: index,
+    barRods: [
+      BarChartRodData(
+        fromY: 0, // Starting value of the bar (optional, defaults to 0)
+        toY: value.toDouble(), // Height of the bar
+        gradient: LinearGradient(
+          colors: [Colors.lightBlueAccent, Colors.greenAccent],
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+        ),
+      ),
+    ],
+  ),
+);
+
         index++;
       }
     });
@@ -162,33 +168,38 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
         Expanded(
           child: BarChart(
             BarChartData(
-              barGroups: _buildBarChartData(period),
-              gridData: FlGridData(show: false),
-              titlesData: FlTitlesData(
-                show: true,
-                bottomTitles: SideTitles(
-                  showTitles: true,
-                  getTitles: (double value) {
-                    switch (period) {
-                      case 'Day':
-                        return DateFormat('MM-dd').format(_mortalities[value.toInt()].date);
-                      case 'Week':
-                        DateTime startOfWeek = _mortalities[value.toInt()].date.subtract(Duration(days: _mortalities[value.toInt()].date.weekday - 1));
-                        return DateFormat('MM-dd').format(startOfWeek);
-                      case 'Month':
-                        return DateFormat('MM').format(_mortalities[value.toInt()].date);
-                      case 'Year':
-                        return DateFormat('yyyy').format(_mortalities[value.toInt()].date);
-                      default:
-                        return '';
-                    }
-                  },
-                  margin: 8,
-                ),
-                leftTitles: SideTitles(showTitles: false),
-              ),
-              borderData: FlBorderData(show: false),
+  barGroups: _buildBarChartData(period),
+  gridData: FlGridData(show: false),
+  titlesData: FlTitlesData(
+    bottomTitles: AxisTitles(
+      sideTitles: SideTitles(
+        showTitles: true,
+        getTitlesWidget: (double value, TitleMeta meta) {
+          final text = _getBottomTitle(value, period);
+          return SideTitleWidget(
+            axisSide: meta.axisSide,
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 10),
             ),
+          );
+        },
+        reservedSize: 30, // Adjust as needed
+      ),
+    ),
+    leftTitles: AxisTitles(
+      sideTitles: SideTitles(showTitles: false),
+    ),
+    topTitles: AxisTitles(
+      sideTitles: SideTitles(showTitles: false),
+    ),
+    rightTitles: AxisTitles(
+      sideTitles: SideTitles(showTitles: false),
+    ),
+  ),
+  borderData: FlBorderData(show: false),
+)
+
           ),
         ),
         Padding(
@@ -220,4 +231,25 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
       ],
     );
   }
+  String _getBottomTitle(double value, String period) {
+  if (value.toInt() >= _mortalities.length) return '';
+  final date = _mortalities[value.toInt()].date;
+
+  switch (period) {
+    case 'Day':
+      return DateFormat('MM-dd').format(date);
+    case 'Week':
+      final startOfWeek = date.subtract(Duration(days: date.weekday - 1));
+      return DateFormat('MM-dd').format(startOfWeek);
+    case 'Month':
+      return DateFormat('MM').format(date);
+    case 'Year':
+      return DateFormat('yyyy').format(date);
+    default:
+      return '';
+  }
 }
+
+}
+
+

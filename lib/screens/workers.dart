@@ -11,14 +11,16 @@ class WorkersPage extends StatefulWidget {
 }
 
 class _WorkersPageState extends State<WorkersPage> {
-  int _selectedIndex = 1; // Set default to WorkersPage index
+  int _selectedIndex = 1;
+  List<String> selectedWorkers = []; // Track selected workers' IDs
+  Map<String, bool> expandedTiles = {}; // Track the expanded/collapsed state of each tile
+  bool isCheckingIn = true; // Track whether you're checking in or checking out workers
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
 
-    // Navigate to the selected page
     switch (index) {
       case 0:
         Navigator.pushReplacementNamed(context, '/');
@@ -32,13 +34,47 @@ class _WorkersPageState extends State<WorkersPage> {
     }
   }
 
+  void toggleTileExpansion(String role) {
+    setState(() {
+      expandedTiles[role] = !(expandedTiles[role] ?? false); // Toggle the expansion state
+    });
+  }
+
+  void toggleWorkerSelection(String workerId) {
+    setState(() {
+      if (selectedWorkers.contains(workerId)) {
+        selectedWorkers.remove(workerId); // Remove worker from selected list
+      } else {
+        selectedWorkers.add(workerId); // Add worker to selected list
+      }
+    });
+  }
+
+  void checkInSelectedWorkers(WorkersProvider workersProvider) {
+    for (var workerId in selectedWorkers) {
+      workersProvider.toggleCheckInWorker(workerId, false); // Mark them as checked in
+    }
+    setState(() {
+      selectedWorkers.clear(); // Clear selected workers after check-in
+    });
+  }
+
+  void checkOutSelectedWorkers(WorkersProvider workersProvider) {
+    for (var workerId in selectedWorkers) {
+      workersProvider.toggleCheckInWorker(workerId, true); // Mark them as checked out
+    }
+    setState(() {
+      selectedWorkers.clear(); // Clear selected workers after check-out
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final workersProvider = Provider.of<WorkersProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Workers Management', style: TextStyle(color: Colors.deepPurple,fontWeight: FontWeight.bold)),
+        title: Text('Workers Management', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: Icon(Icons.add_circle_outline_outlined, color: Colors.deepPurple),
@@ -79,9 +115,21 @@ class _WorkersPageState extends State<WorkersPage> {
                   backgroundColor: Colors.transparent,
                   radius: 15,
                 ),
-                initiallyExpanded: true,
-                trailing:Icon(Iconsax.arrow_down_1,color: Colors.deepPurple,) ,
-                title: Text(role, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.deepPurple)),
+                expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                expandedAlignment: Alignment.topLeft,
+                trailing: Icon(
+                  expandedTiles[role] == true ? Icons.arrow_upward : Icons.arrow_downward,
+                  color: Colors.deepPurple,
+                ),
+                title: Text(
+                  role,
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                ),
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    expandedTiles[role] = expanded; // Update the expansion state
+                  });
+                },
                 children: workersByRole[role]!.map((worker) {
                   return WorkerTile(
                     worker: {
@@ -92,6 +140,8 @@ class _WorkersPageState extends State<WorkersPage> {
                       'checkedIn': worker['checkedIn'],
                     },
                     onToggleCheckIn: () => workersProvider.toggleCheckInWorker(worker.id, worker['checkedIn']),
+                    onWorkerSelected: () => toggleWorkerSelection(worker.id), // Handle worker selection
+                    isSelected: selectedWorkers.contains(worker.id),
                   );
                 }).toList(),
               );
@@ -100,7 +150,6 @@ class _WorkersPageState extends State<WorkersPage> {
         },
       ),
       bottomNavigationBar: BottomNavigationBar(
-        
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.monetization_on_outlined),
@@ -110,12 +159,27 @@ class _WorkersPageState extends State<WorkersPage> {
             icon: Icon(Iconsax.user),
             label: 'Workers',
           ),
-          
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.deepPurple,
         onTap: _onItemTapped,
       ),
+      floatingActionButton: selectedWorkers.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                // Toggle check-in or check-out action based on the current mode
+                if (isCheckingIn) {
+                  checkInSelectedWorkers(workersProvider); // Check-in workers
+                } else {
+                  checkOutSelectedWorkers(workersProvider); // Check-out workers
+                }
+              },
+              label: Text(isCheckingIn ? 'Check In Selected' : 'Check Out Selected'),
+              icon: Icon(isCheckingIn ? Icons.check : Icons.exit_to_app),
+              backgroundColor: Colors.deepPurple,
+            )
+          : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
@@ -123,8 +187,15 @@ class _WorkersPageState extends State<WorkersPage> {
 class WorkerTile extends StatelessWidget {
   final Map<String, dynamic> worker;
   final void Function() onToggleCheckIn;
+  final void Function() onWorkerSelected;
+  final bool isSelected;
 
-  WorkerTile({required this.worker, required this.onToggleCheckIn});
+  WorkerTile({
+    required this.worker,
+    required this.onToggleCheckIn,
+    required this.onWorkerSelected,
+    required this.isSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +247,14 @@ class WorkerTile extends StatelessWidget {
             TextButton(
               onPressed: onToggleCheckIn,
               child: Text(worker['checkedIn'] ? 'Check Out' : 'Check In'),
+            ),
+            // Worker Selection
+            IconButton(
+              icon: Icon(
+                isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                color: Colors.deepPurple,
+              ),
+              onPressed: onWorkerSelected,
             ),
           ],
         ),

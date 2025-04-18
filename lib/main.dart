@@ -1,3 +1,4 @@
+import 'package:expense_tracker/firebase_options.dart';
 import 'package:expense_tracker/local_notifications.dart';
 import 'package:expense_tracker/screens/mortality_screen.dart';
 import 'package:flutter/material.dart';
@@ -15,7 +16,9 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterL
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await LocalNotifications.init();
   runApp(const MyApp());
 }
@@ -40,6 +43,7 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => WorkersProvider(),
       child: MaterialApp(
+        restorationScopeId: "Test",
         title: 'Vaccine Tracker',
         theme: ThemeData(
           primarySwatch: Colors.blue,

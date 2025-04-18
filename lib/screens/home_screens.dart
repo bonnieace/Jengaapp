@@ -159,20 +159,26 @@ Stream<Map<String, dynamic>> _expensesStream() {
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(
-      title: const Text('Expense Tracker', style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
-      actions: [
-        TextButton(
-          child: const Icon(Icons.add_circle_outline_sharp, color: Colors.deepPurple),
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => AddExpenseScreen(_addExpense),
-            ));
-          },
-        ),
-      ],
-    ),
-    body: StreamBuilder<List<String>>(
+  appBar: AppBar(
+    title: const Text('Expense Tracker', style: TextStyle(fontFamily: 'Roboto', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white)),
+    actions: [
+      TextButton(
+        child: const Icon(Icons.add_circle_outline_sharp, color: Colors.white),
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => AddExpenseScreen(_addExpense),
+          ));
+        },
+      ),
+    ],
+    backgroundColor: Colors.deepPurple,
+    elevation: 5,
+  ),
+  body:LayoutBuilder(
+  builder: (context, constraints) {
+    // Determine if we are on a large screen
+    bool isLargeScreen = constraints.maxWidth > 600;
+    return StreamBuilder<List<String>>(
       stream: _categoriesStream(),
       builder: (context, categorySnapshot) {
         if (categorySnapshot.connectionState == ConnectionState.waiting) {
@@ -194,132 +200,195 @@ Widget build(BuildContext context) {
 
             return SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Category filter row with horizontal scroll
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: Wrap(
-                      spacing: 8.0,
-                      runSpacing: 8.0,
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = "All"; // Update selected category
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(8.0),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: _selectedCategory == "All" ? Colors.deepPurple : Colors.grey),
-                              borderRadius: BorderRadius.circular(8.0),
-                            ),
-                            child: Text('All Expenses', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                        ..._categories.where((category) => category != "All").map((category) {
-                          return GestureDetector(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          GestureDetector(
                             onTap: () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => ExpenseDetailsScreen(category),
-                              ));
+                              setState(() {
+                                _selectedCategory = "All"; // Update selected category
+                              });
                             },
-                            child: Container(
-                              padding: EdgeInsets.all(8.0),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: _selectedCategory == category ? Colors.deepPurple : Colors.grey),
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              child: Text(category, style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Chip(
+                              label: Text('All Expenses'),
+                              backgroundColor: _selectedCategory == "All" ? Colors.deepPurple : Colors.grey[300],
+                              labelStyle: TextStyle(fontWeight: FontWeight.bold, color: _selectedCategory == "All" ? Colors.white : Colors.black),
                             ),
-                          );
-                        }).toList(),
-                      ],
+                          ),
+                          ..._categories.where((category) => category != "All").map((category) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (_) => ExpenseDetailsScreen(category),
+                                ));
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                child: Chip(
+                                  label: Text(category),
+                                  backgroundColor: _selectedCategory == category ? Colors.deepPurple : Colors.grey[300],
+                                  labelStyle: TextStyle(fontWeight: FontWeight.bold, color: _selectedCategory == category ? Colors.white : Colors.black),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
                     ),
                   ),
+
+                  // Expense Pie Chart
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: _categoryDataMap.isNotEmpty
-                        ? Column(
-                            children: [
-                              Container(
-                                height: 200,
-                                child: PieChart(
-                                  dataMap: _categoryDataMap,
-                                  chartType: ChartType.ring,
-                                  ringStrokeWidth: 32,
-                                  centerText: 'Ksh. ${_totalExpenses.toStringAsFixed(0)}',
-                                  legendOptions: LegendOptions(
-                                    showLegends: false,
+                        ? isLargeScreen
+                            ? Row(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      height: 250,
+                                      child: PieChart(
+                                        dataMap: _categoryDataMap,
+                                        chartType: ChartType.ring,
+                                        ringStrokeWidth: 32,
+                                        centerText: 'Ksh. ${_totalExpenses.toStringAsFixed(0)}',
+                                        legendOptions: LegendOptions(
+                                          showLegends: false,
+                                        ),
+                                        chartValuesOptions: ChartValuesOptions(
+                                          showChartValues: true,
+                                          showChartValuesInPercentage: true,
+                                          showChartValuesOutside: false,
+                                          decimalPlaces: 2,
+                                        ),
+                                        colorList: _categoryColors.values.toList(),
+                                      ),
+                                    ),
                                   ),
-                                  chartValuesOptions: ChartValuesOptions(
-                                    showChartValues: true,
-                                    showChartValuesInPercentage: true,
-                                    showChartValuesOutside: false,
-                                    decimalPlaces: 2,
-                                  ),
-                                  colorList: _categoryColors.values.toList(),
-                                ),
-                              ),
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: NeverScrollableScrollPhysics(),
-                                itemCount: _categoryDataMap.length,
-                                itemBuilder: (ctx, index) {
-                                  String category = _categoryDataMap.keys.elementAt(index);
-                                  double percentage = (_categoryDataMap[category]! / _totalExpenses) * 100;
-                                  double amount = _categoryDataMap[category]!;
-                                  Color categoryColor = _categoryColors[category]!;
-                                  return Column(
-                                    children: [
-                                      ListTile(
-                                        title: Row(
-                                          children: [
-                                            Container(
-                                              width: 10,
-                                              height: 10,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
+                                  SizedBox(width: 16),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      child: ListView.builder(
+                                        physics: NeverScrollableScrollPhysics(),
+                                        shrinkWrap: true,
+                                        itemCount: _categoryDataMap.length,
+                                        itemBuilder: (ctx, index) {
+                                          String category = _categoryDataMap.keys.elementAt(index);
+                                          double percentage = (_categoryDataMap[category]! / _totalExpenses) * 100;
+                                          double amount = _categoryDataMap[category]!;
+                                          Color categoryColor = _categoryColors[category]!;
+                                          return Card(
+                                            margin: const EdgeInsets.symmetric(vertical: 8.0),
+                                            elevation: 3,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                            child: ListTile(
+                                              title: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 10,
+                                                    height: 10,
+                                                    decoration: BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: categoryColor,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 8),
+                                                  Text(category),
+                                                ],
+                                              ),
+                                              subtitle: LinearProgressIndicator(
+                                                value: percentage / 100,
+                                                backgroundColor: Colors.grey[300],
                                                 color: categoryColor,
                                               ),
+                                              trailing: Text('Ksh. $amount'),
+                                              onTap: () {
+                                                Navigator.of(context).push(MaterialPageRoute(
+                                                  builder: (_) => ExpenseDetailsScreen(category),
+                                                ));
+                                              },
                                             ),
-                                            SizedBox(width: 8),
-                                            Text(category),
-                                            Expanded(
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                                child: LinearProgressIndicator(
-                                                  value: percentage / 100,
-                                                  backgroundColor: Colors.grey[300],
-                                                  color: categoryColor,
-                                                ),
-                                              ),
-                                            ),
-                                            Text('${percentage.toStringAsFixed(2)}%'),
-                                          ],
-                                        ),
-                                        onTap: () {
-                                          Navigator.of(context).push(MaterialPageRoute(
-                                            builder: (_) => ExpenseDetailsScreen(category),
-                                          ));
+                                          );
                                         },
                                       ),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(''),
-                                            Text('Ksh. $amount'),
-                                          ],
-                                        ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  Container(
+                                    height: 200,
+                                    child: PieChart(
+                                      dataMap: _categoryDataMap,
+                                      chartType: ChartType.ring,
+                                      ringStrokeWidth: 32,
+                                      centerText: 'Ksh. ${_totalExpenses.toStringAsFixed(0)}',
+                                      legendOptions: LegendOptions(
+                                        showLegends: false,
                                       ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          )
+                                      chartValuesOptions: ChartValuesOptions(
+                                        showChartValues: true,
+                                        showChartValuesInPercentage: true,
+                                        showChartValuesOutside: false,
+                                        decimalPlaces: 2,
+                                      ),
+                                      colorList: _categoryColors.values.toList(),
+                                    ),
+                                  ),
+                                  SingleChildScrollView(
+                                    child: ListView.builder(
+                                      physics: NeverScrollableScrollPhysics(),
+                                      shrinkWrap: true,
+                                      itemCount: _categoryDataMap.length,
+                                      itemBuilder: (ctx, index) {
+                                        String category = _categoryDataMap.keys.elementAt(index);
+                                        double percentage = (_categoryDataMap[category]! / _totalExpenses) * 100;
+                                        double amount = _categoryDataMap[category]!;
+                                        Color categoryColor = _categoryColors[category]!;
+                                        return Card(
+                                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                                          elevation: 3,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                                          child: ListTile(
+                                            title: Row(
+                                              children: [
+                                                Container(
+                                                  width: 10,
+                                                  height: 10,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: categoryColor,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text(category),
+                                              ],
+                                            ),
+                                            subtitle: LinearProgressIndicator(
+                                              value: percentage / 100,
+                                              backgroundColor: Colors.grey[300],
+                                              color: categoryColor,
+                                            ),
+                                            trailing: Text('Ksh. $amount'),
+                                            onTap: () {
+                                              Navigator.of(context).push(MaterialPageRoute(
+                                                builder: (_) => ExpenseDetailsScreen(category),
+                                              ));
+                                            },
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              )
                         : Center(child: Text('No data available')),
                   ),
                 ],
@@ -328,24 +397,36 @@ Widget build(BuildContext context) {
           },
         );
       },
-    ),
-    bottomNavigationBar: BottomNavigationBar(
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
-          icon: Icon(Icons.monetization_on_rounded),
-          label: 'Expenses',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Iconsax.user_copy),
-          label: 'Workers',
-        ),
-    
-      ],
-      currentIndex: _selectedIndex,
-      selectedItemColor: Colors.deepPurpleAccent,
-      onTap: _onItemTapped,
-    ),
-  );
+    );
+  },
+),
+  bottomNavigationBar: BottomNavigationBar(
+    items: const <BottomNavigationBarItem>[
+      BottomNavigationBarItem(
+        icon: Icon(Icons.monetization_on_rounded),
+        label: 'Expenses',
+      ),
+      BottomNavigationBarItem(
+        icon: Icon(Icons.person),
+        label: 'Workers',
+      ),
+    ],
+    currentIndex: _selectedIndex,
+    selectedItemColor: Colors.deepPurpleAccent,
+    onTap: _onItemTapped,
+    showSelectedLabels: true, // For showing labels below icons
+  ),
+  floatingActionButton: FloatingActionButton(
+    onPressed: () {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => AddExpenseScreen(_addExpense),
+      ));
+    },
+    child: Icon(Icons.add),
+    backgroundColor: Colors.deepPurpleAccent,
+  ),
+);
+
 }
 
 }

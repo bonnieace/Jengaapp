@@ -170,7 +170,7 @@ class _AddVaccineScreenState extends State<AddVaccineScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
   style: ElevatedButton.styleFrom(
-    primary: Colors.white,
+    backgroundColor: Colors.white,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(6), // Adjust the radius as needed
       side: BorderSide(color: Colors.deepPurpleAccent), // Optional: border color

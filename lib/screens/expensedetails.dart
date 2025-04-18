@@ -32,29 +32,46 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
           .where('category', isEqualTo: widget.category)
           .get();
 
-      List<Map<String, dynamic>> expenseDetails = snapshot.docs
+      List<Map<String, dynamic>> allExpenseDetails = snapshot.docs
           .map((doc) => doc.data() as Map<String, dynamic>)
           .toList();
 
       // Sort data by date in descending order
-      expenseDetails.sort((a, b) {
+      allExpenseDetails.sort((a, b) {
         final dateA = (a['date'] as Timestamp).toDate();
         final dateB = (b['date'] as Timestamp).toDate();
-        return dateB.compareTo(dateA); // Changed to descending order
+        return dateB.compareTo(dateA);
       });
+
+      // Filter expenses based on selected period
+      DateTime now = DateTime.now();
+      List<Map<String, dynamic>> filteredExpenses = allExpenseDetails.where((expense) {
+        DateTime expenseDate = (expense['date'] as Timestamp).toDate();
+        switch (_selectedPeriod) {
+          case "Week":
+            return expenseDate.isAfter(now.subtract(Duration(days: 7)));
+          case "Month":
+            return expenseDate.isAfter(now.subtract(Duration(days: 30)));
+          case "Year":
+            return expenseDate.isAfter(now.subtract(Duration(days: 365)));
+          default:
+            return true;
+        }
+      }).toList();
 
       double totalExpenses = 0.0;
       List<FlSpot> dataPoints = [];
-      for (int i = 0; i < expenseDetails.length; i++) {
-        final data = expenseDetails[i];
-        final double amount = data['amount'];
-        totalExpenses += amount;
-        dataPoints.add(FlSpot(i.toDouble(), amount));
-      }
+for (int i = 0; i < filteredExpenses.length; i++) {
+  final data = filteredExpenses[i];
+  final double amount = data['amount'];
+  totalExpenses += amount;
+  // Reverse the x-coordinate by using (filteredExpenses.length - 1 - i)
+  dataPoints.add(FlSpot((filteredExpenses.length - 1 - i).toDouble(), amount));
+}
 
       setState(() {
         _dataPoints = dataPoints;
-        _expenseDetails = expenseDetails;
+        _expenseDetails = filteredExpenses;
         _totalExpenses = totalExpenses;
       });
     } catch (e) {
@@ -74,6 +91,10 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.category} Details'),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -97,12 +118,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                     ),
                   ),
                   SizedBox(height: 60),
-                  /*ToggleButtons(
-                    children: [
-                      Text('Week'),
-                      Text('Month'),
-                      Text('Year'),
-                    ],
+                  ToggleButtons(
                     isSelected: [
                       _selectedPeriod == "Week",
                       _selectedPeriod == "Month",
@@ -115,7 +131,21 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                       else period = "Year";
                       _onPeriodChanged(period);
                     },
-                  ),*/
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('Week'),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('Month'),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('Year'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -134,46 +164,76 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
                             LineChartBarData(
                               spots: _dataPoints,
                               isCurved: true,
-                              colors: [Colors.black],
+                              color: Colors.black,
                               barWidth: 4,
                               belowBarData: BarAreaData(
                                 show: false,
-                                colors: [Colors.blue.withOpacity(0.3)],
+                                color: Colors.blue.withOpacity(0.3),
                               ),
                               dotData: FlDotData(
                                 show: true,
+                                getDotPainter: (spot, percent, barData, index) {
+                                  return FlDotCirclePainter(
+                                    radius: 4,
+                                    color: Colors.black,
+                                    strokeWidth: 2,
+                                    strokeColor: Colors.white,
+                                  );
+                                },
                               ),
                             ),
                           ],
                           titlesData: FlTitlesData(
-                            leftTitles: SideTitles(showTitles: false),
-                            rightTitles: SideTitles(showTitles: false),
-                            topTitles: SideTitles(showTitles: false),
-                            bottomTitles: SideTitles(
-                              showTitles: false,
-                              getTitles: (value) {
-                                if (_selectedPeriod == "Week") {
-                                  return DateFormat('E').format(
-                                    (value.toInt() < _expenseDetails.length)
-                                        ? (_expenseDetails[value.toInt()]['date'] as Timestamp).toDate()
-                                        : DateTime.now(),
-                                  );
-                                } else if (_selectedPeriod == "Month") {
-                                  return DateFormat('MMM').format(
-                                    (value.toInt() < _expenseDetails.length)
-                                        ? (_expenseDetails[value.toInt()]['date'] as Timestamp).toDate()
-                                        : DateTime.now(),
-                                  );
-                                } else {
-                                  return DateFormat('yyyy').format(
-                                    (value.toInt() < _expenseDetails.length)
-                                        ? (_expenseDetails[value.toInt()]['date'] as Timestamp).toDate()
-                                        : DateTime.now(),
-                                  );
-                                }
-                              },
-                              reservedSize: 22,
-                              margin: 8,
+                            leftTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 22,
+                                getTitlesWidget: (value, meta) {
+  // Find the index of the expense that corresponds to this x-axis value
+  int matchingIndex = _dataPoints.indexWhere((spot) => spot.x == value);
+  
+  if (matchingIndex != -1) {
+    DateTime expenseDate = 
+      (_expenseDetails[matchingIndex]['date'] as Timestamp).toDate();
+    
+    switch (_selectedPeriod) {
+      case "Week":
+        return Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            DateFormat('E').format(expenseDate),
+            style: TextStyle(fontSize: 10),
+          ),
+        );
+      case "Month":
+        return Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            DateFormat('d').format(expenseDate),
+            style: TextStyle(fontSize: 10),
+          ),
+        );
+      case "Year":
+        return Padding(
+          padding: const EdgeInsets.only(top: 8.0),
+          child: Text(
+            ""
+          ),
+        );
+    }
+  }
+  return Text('');
+},
+                              ),
                             ),
                           ),
                           borderData: FlBorderData(show: false),
