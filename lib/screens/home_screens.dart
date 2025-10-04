@@ -142,17 +142,16 @@ Stream<Map<String, dynamic>> _expensesStream() {
     switch (index) {
       case 0:
         // Navigate to the current homepage or main screen
+        Navigator.pushReplacementNamed(context, '/'); // Example navigation to home screen
         break;
       case 1:
-                Navigator.pushReplacementNamed(context, '/workersPage');
-
+        // Navigate to another screen if needed
+        Navigator.pushReplacementNamed(context, '/mortalityScreen'); // Example navigation to another screen
         break;
       case 2:
-        // Navigate to the VaccineTrackerScreen
-        Navigator.pushReplacementNamed(context, '/vaccineTracker');
-        break;
-      // Add cases for other navigation items in your BottomNavigationBar
-    }  
+        Navigator.pushReplacementNamed(context, '/vaccineTracker'); // Example navigation to another screen
+      // No action needed for index 2 (current screen)
+    }
   }
 
   @override
@@ -400,22 +399,26 @@ Widget build(BuildContext context) {
     );
   },
 ),
-  bottomNavigationBar: BottomNavigationBar(
-    items: const <BottomNavigationBarItem>[
-      BottomNavigationBarItem(
-        icon: Icon(Icons.monetization_on_rounded),
-        label: 'Expenses',
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.deepPurple,
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.monitor_heart_outlined),
+            label: 'Survival rate',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.vaccines),
+            label: 'Vaccine Tracker',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.white,
+        onTap: _onItemTapped,
       ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.person),
-        label: 'Workers',
-      ),
-    ],
-    currentIndex: _selectedIndex,
-    selectedItemColor: Colors.deepPurpleAccent,
-    onTap: _onItemTapped,
-    showSelectedLabels: true, // For showing labels below icons
-  ),
   floatingActionButton: FloatingActionButton(
     onPressed: () {
       Navigator.of(context).push(MaterialPageRoute(
