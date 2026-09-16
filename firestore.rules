@@ -9,6 +9,14 @@ service cloud.firestore {
     function ownsNewTenant() {
       return signedIn() && request.resource.data.ownerId == request.auth.uid;
     }
+    function eggStockBefore(tenantId, flockId) {
+      let value = get(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)).data.get('eggStock', 0);
+      return value is int ? value : 0;
+    }
+    function eggStockAfter(tenantId, flockId) {
+      let value = getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)).data.get('eggStock', 0);
+      return value is int ? value : 0;
+    }
 
     match /users/{uid} {
       allow create, read, update: if signedIn() && request.auth.uid == uid;
@@ -41,7 +49,19 @@ service cloud.firestore {
       }
 
       match /flocks/{flockId} {
-        allow read, write: if isMember(tenantId);
+        allow read, create: if isMember(tenantId);
+        allow update: if isMember(tenantId) &&
+          (!('eggStock' in request.resource.data) ||
+            (request.resource.data.eggStock is int && request.resource.data.eggStock >= 0)) &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eggStock']) ||
+            (request.resource.data.eggMutationId is string &&
+              ((request.resource.data.eggMutationType == 'production' &&
+                getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)/eggProduction/$(request.resource.data.eggMutationId)).data.goodEggs is int) ||
+               (request.resource.data.eggMutationType == 'sale' &&
+                getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)/eggSales/$(request.resource.data.eggMutationId)).data.quantity is int) ||
+               (request.resource.data.eggMutationType == 'adjustment' &&
+                getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)/eggStockAdjustments/$(request.resource.data.eggMutationId)).data.delta is int))));
+        allow delete: if false;
 
         match /mortalities/{mortalityId} {
           allow read, write: if isMember(tenantId);
@@ -49,6 +69,52 @@ service cloud.firestore {
 
         match /vaccinations/{vaccinationId} {
           allow read, write: if isMember(tenantId);
+        }
+
+        match /eggProduction/{productionId} {
+          allow read: if isMember(tenantId);
+          allow create: if isMember(tenantId) &&
+            request.resource.data.goodEggs is int && request.resource.data.goodEggs >= 0 &&
+            request.resource.data.crackedEggs is int && request.resource.data.crackedEggs >= 0 &&
+            request.resource.data.dirtyEggs is int && request.resource.data.dirtyEggs >= 0 &&
+            request.resource.data.rejectedEggs is int && request.resource.data.rejectedEggs >= 0 &&
+            request.resource.data.totalCollected ==
+              request.resource.data.goodEggs + request.resource.data.crackedEggs +
+              request.resource.data.dirtyEggs + request.resource.data.rejectedEggs &&
+            eggStockAfter(tenantId, flockId) ==
+              eggStockBefore(tenantId, flockId) + request.resource.data.goodEggs;
+          allow update, delete: if false;
+        }
+
+        match /eggSales/{saleId} {
+          allow read: if isMember(tenantId);
+          allow create: if isMember(tenantId) &&
+            request.resource.data.quantity is int && request.resource.data.quantity > 0 &&
+            request.resource.data.quantity <= eggStockBefore(tenantId, flockId) &&
+            request.resource.data.totalAmount ==
+              request.resource.data.quantity * request.resource.data.unitPrice &&
+            request.resource.data.paymentStatus in ['paid', 'partial', 'credit'] &&
+            request.resource.data.amountPaid is number &&
+            request.resource.data.amountPaid >= 0 &&
+            request.resource.data.amountPaid <= request.resource.data.totalAmount &&
+            request.resource.data.balanceDue ==
+              request.resource.data.totalAmount - request.resource.data.amountPaid &&
+            eggStockAfter(tenantId, flockId) ==
+              eggStockBefore(tenantId, flockId) - request.resource.data.quantity;
+          allow update, delete: if false;
+        }
+
+        match /eggStockAdjustments/{adjustmentId} {
+          allow read: if isMember(tenantId);
+          allow create: if isMember(tenantId) &&
+            request.resource.data.delta is int && request.resource.data.delta != 0 &&
+            request.resource.data.reason is string && request.resource.data.reason.size() >= 3 &&
+            request.resource.data.stockBefore == eggStockBefore(tenantId, flockId) &&
+            request.resource.data.stockAfter == eggStockAfter(tenantId, flockId) &&
+            request.resource.data.stockAfter ==
+              request.resource.data.stockBefore + request.resource.data.delta &&
+            request.resource.data.stockAfter >= 0;
+          allow update, delete: if false;
         }
       }
     }

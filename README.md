@@ -1,7 +1,7 @@
 # ChickFarm
 
 ChickFarm is a Flutter/Firebase poultry-management MVP for farm expenses,
-workers, flock mortality and vaccination schedules.
+workers, flock mortality, vaccination schedules, egg production and egg sales.
 
 ## Production data model
 
@@ -9,7 +9,11 @@ workers, flock mortality and vaccination schedules.
 - `tenants/{tenantId}` stores farm identity.
 - `tenants/{tenantId}/members/{uid}` controls farm access.
 - Expenses and workers are tenant-scoped.
-- Mortalities and vaccinations are scoped under the active flock.
+- Mortalities, vaccinations, egg collections and egg sales are scoped under
+  the active flock.
+- Sellable egg stock is updated atomically when good eggs are collected or sold.
+- Egg sales support trays, loose eggs, buyer details and paid, partial or credit status.
+- Stock corrections are append-only and require a reason, preserving an audit trail.
 
 Firestore rules in `firestore.rules` enforce the same boundary. Root-level
 legacy collections are intentionally inaccessible to the hardened client.

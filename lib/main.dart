@@ -12,6 +12,7 @@ import 'package:timezone/data/latest.dart' as tz;
 
 import 'screens/workers.dart';
 import 'screens/auth_gate.dart';
+import 'screens/egg_dashboard_screen.dart';
 import 'services/farm_scope.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
@@ -57,6 +58,7 @@ class MyApp extends StatelessWidget {
           '/vaccineTracker': (context) => VaccineTrackerScreen(notificationsPlugin: flutterLocalNotificationsPlugin),
           '/mortalityScreen': (context) => MortalityScreen(),
           '/workersPage': (context) => WorkersPage(),
+          '/eggs': (context) => const EggDashboardScreen(),
           // Add other routes as needed
         },
       ),

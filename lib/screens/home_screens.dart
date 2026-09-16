@@ -163,6 +163,11 @@ Widget build(BuildContext context) {
   appBar: AppBar(
     title: const Text('Expense Tracker', style: TextStyle(fontFamily: 'Roboto', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white)),
     actions: [
+      IconButton(
+        tooltip: 'Egg production and sales',
+        icon: const Icon(Icons.egg_outlined, color: Colors.white),
+        onPressed: () => Navigator.pushNamed(context, '/eggs'),
+      ),
       TextButton(
         child: const Icon(Icons.add_circle_outline_sharp, color: Colors.white),
         onPressed: () {
@@ -208,6 +213,16 @@ Widget build(BuildContext context) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Card(
+                    margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+                    child: ListTile(
+                      leading: const CircleAvatar(child: Icon(Icons.egg_outlined)),
+                      title: const Text('Egg Production & Sales'),
+                      subtitle: const Text('Record collections, stock and customer sales'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => Navigator.pushNamed(context, '/eggs'),
+                    ),
+                  ),
                   // Category filter row with horizontal scroll
                   Padding(
                     padding: const EdgeInsets.all(8.0),

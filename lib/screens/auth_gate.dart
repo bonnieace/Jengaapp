@@ -169,7 +169,7 @@ class _FlockSetupScreenState extends State<FlockSetupScreen> {
     if (_name.text.trim().isEmpty || count == null || count < 1) return;
     setState(() => _busy = true);
     try {
-      final doc = await FarmScope.collection('flocks').add({'name': _name.text.trim(), 'initialBirdCount': count, 'startedAt': Timestamp.now(), 'active': true, 'createdAt': FieldValue.serverTimestamp()});
+      final doc = await FarmScope.collection('flocks').add({'name': _name.text.trim(), 'initialBirdCount': count, 'eggStock': 0, 'startedAt': Timestamp.now(), 'active': true, 'createdAt': FieldValue.serverTimestamp()});
       FarmScope.flockId = doc.id;
       if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     } finally { if (mounted) setState(() => _busy = false); }
