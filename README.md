@@ -1,16 +1,34 @@
-# expense_tracker
+# ChickFarm
 
-A new Flutter project.
+ChickFarm is a Flutter/Firebase poultry-management MVP for farm expenses,
+workers, flock mortality and vaccination schedules.
 
-## Getting Started
+## Production data model
 
-This project is a starting point for a Flutter application.
+- `users/{uid}` stores the user's active tenant.
+- `tenants/{tenantId}` stores farm identity.
+- `tenants/{tenantId}/members/{uid}` controls farm access.
+- Expenses and workers are tenant-scoped.
+- Mortalities and vaccinations are scoped under the active flock.
 
-A few resources to get you started if this is your first Flutter project:
+Firestore rules in `firestore.rules` enforce the same boundary. Root-level
+legacy collections are intentionally inaccessible to the hardened client.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Firebase setup
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. Enable Email/Password authentication in Firebase Authentication.
+2. Deploy rules and indexes: `firebase deploy --only firestore`.
+3. Add an ignored `android/key.properties` and release keystore for signed Android builds.
+4. Build with `flutter build appbundle` or `flutter build web`.
+
+Existing prototype records in root collections are not migrated automatically;
+copy them into the appropriate tenant/flock only after assigning ownership.
+
+## Verification
+
+```sh
+flutter pub get
+flutter analyze
+flutter test
+flutter build appbundle
+```

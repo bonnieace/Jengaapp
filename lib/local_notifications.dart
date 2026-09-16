@@ -1,4 +1,3 @@
-import 'package:expense_tracker/main.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class LocalNotifications {
@@ -20,6 +19,9 @@ final InitializationSettings initializationSettings = InitializationSettings(
     linux: initializationSettingsLinux);
 _flutterLocalNotificationsPlugin.initialize(initializationSettings,
     onDidReceiveNotificationResponse: (details) => null,);
+await _flutterLocalNotificationsPlugin
+    .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+    ?.requestNotificationsPermission();
   }
 
   static Future showSimpleNotification({required String title,required String body,required String payload})async{

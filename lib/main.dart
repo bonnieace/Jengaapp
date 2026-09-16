@@ -11,6 +11,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 import 'screens/workers.dart';
+import 'screens/auth_gate.dart';
+import 'services/farm_scope.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
@@ -19,6 +21,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  tz.initializeTimeZones();
   await LocalNotifications.init();
   runApp(const MyApp());
 }
@@ -43,12 +46,13 @@ class MyApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => WorkersProvider(),
       child: MaterialApp(
-        restorationScopeId: "Test",
-        title: 'Vaccine Tracker',
+        restorationScopeId: "chickfarm",
+        title: 'ChickFarm',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
           primarySwatch: Colors.blue,
         ),
-        home: const HomeScreen(),
+        home: const AuthGate(),
         routes: {
           '/vaccineTracker': (context) => VaccineTrackerScreen(notificationsPlugin: flutterLocalNotificationsPlugin),
           '/mortalityScreen': (context) => MortalityScreen(),
@@ -60,7 +64,8 @@ class MyApp extends StatelessWidget {
   }
 }
 class WorkersProvider with ChangeNotifier {
-  final CollectionReference workersCollection = FirebaseFirestore.instance.collection('workers');
+  CollectionReference<Map<String, dynamic>> get workersCollection =>
+      FarmScope.collection('workers');
 
   Stream<QuerySnapshot> get workers {
     return workersCollection.snapshots();
@@ -80,7 +85,7 @@ class WorkersProvider with ChangeNotifier {
   Future<void> toggleCheckInWorker(String id, bool checkedIn) async {
     final DocumentReference workerDoc = workersCollection.doc(id);
     final DocumentSnapshot workerSnapshot = await workerDoc.get();
-    final data = workerSnapshot.data() as Map<String, dynamic>;
+    final data = workerSnapshot.data() as Map<String, dynamic>? ?? {};
 
     // Update the checkedIn status
     final newCheckedIn = !checkedIn;
@@ -89,11 +94,11 @@ class WorkersProvider with ChangeNotifier {
     final Timestamp now = Timestamp.now();
 
     // Update the checkInHistory
-    final List<dynamic> checkInHistory = data['checkInHistory'];
+    final List<dynamic> checkInHistory = List<dynamic>.from(data['checkInHistory'] ?? []);
     checkInHistory.add({'checkedIn': newCheckedIn, 'timestamp': now});
 
     // Calculate the Days Worked if checking out
-    int workingDays = data['workingDays'];
+    int workingDays = (data['workingDays'] as num?)?.toInt() ?? 0;
     if (!newCheckedIn) {
       final lastCheckInTimestamp = checkInHistory.lastWhere((event) => event['checkedIn'])['timestamp'];
       final lastCheckInDate = lastCheckInTimestamp.toDate();
@@ -111,4 +116,3 @@ class WorkersProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

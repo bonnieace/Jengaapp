@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import '../services/farm_scope.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen(void Function(String category, String description, double amount) addExpense, {super.key});
@@ -14,10 +15,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _categoryController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<List<String>> _getCategories(String query) async {
-    final QuerySnapshot snapshot = await _firestore.collection('expenses').get();
+    final QuerySnapshot snapshot = await FarmScope.collection('expenses').get();
     final allCategories = snapshot.docs
         .map((doc) => doc['category'].toString())
         .toSet()
@@ -38,15 +38,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
 
     try {
-      await _firestore.collection('expenses').add({
+      await FarmScope.collection('expenses').add({
         'category': enteredCategory,
         'description': enteredDescription,
         'amount': enteredAmount,
         'date': DateTime.now(),
       });
-      Navigator.of(context).pop();
+      if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      print('Error adding expense: $e');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not save this expense. Please try again.')),
+      );
     }
   }
 

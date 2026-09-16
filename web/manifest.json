@@ -1,11 +1,11 @@
 {
-    "name": "expense_tracker",
-    "short_name": "expense_tracker",
+    "name": "ChickFarm",
+    "short_name": "ChickFarm",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Poultry farm management for flocks, expenses, workers, mortality and vaccinations.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

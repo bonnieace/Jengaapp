@@ -1,12 +1,11 @@
-import 'package:expense_tracker/local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../main.dart';
 import '../models/vaccine.dart';
 import 'add_vaccine.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:intl/intl.dart';
+import '../services/farm_scope.dart';
 
 class VaccineTrackerScreen extends StatefulWidget {
   final FlutterLocalNotificationsPlugin notificationsPlugin;
@@ -17,7 +16,6 @@ class VaccineTrackerScreen extends StatefulWidget {
 }
 
 class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late CollectionReference _vaccinesCollection;
   int _selectedIndex = 2; // Set initial index for this screen in the bottom navigation
   Set<String> _administeredVaccines = Set();
@@ -27,9 +25,9 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
   @override
   void initState() {
     super.initState();
-    _vaccinesCollection = _firestore.collection('vaccines');
-    LocalNotifications.showSimpleNotification(title: "vaccines", body: "body", payload: "payload");
-    _fetchVaccineDates(); // Fetch vaccine dates on init
+    _vaccinesCollection = FarmScope.flockCollection('vaccinations');
+    _fetchVaccineDates();
+    _scheduleExistingNotifications();
   }
 
   Future<void> _fetchVaccineDates() async {
@@ -43,6 +41,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
       }
     }
 
+    if (!mounted) return;
     setState(() {
       _vaccineDates = dates;
     });
@@ -59,34 +58,15 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
     }
   }
 
-  Future<void> _triggerTestNotification() async {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local).add(Duration(seconds: 5)); // 5 seconds from now
-    await widget.notificationsPlugin.zonedSchedule(
-      0, // Unique identifier for the notification
-      'Test Notification',
-      'This is a test notification to verify the system.',
-      now,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'test_channel_id',
-          'Test Channel',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-      ),
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
-    );
-  }
-
   Future<void> scheduleNotification(String id, String vaccineName, DateTime date) async {
     final tz.TZDateTime scheduledDate = tz.TZDateTime.from(date, tz.local);
+    final reminderDate = scheduledDate.subtract(const Duration(days: 1)).add(const Duration(hours: 9));
+    if (reminderDate.isBefore(tz.TZDateTime.now(tz.local))) return;
     await widget.notificationsPlugin.zonedSchedule(
       id.hashCode,
       'Vaccine Reminder',
       'The $vaccineName vaccine is due on ${date.toLocal().toString().split(' ')[0]}',
-      scheduledDate.subtract(Duration(hours: 16)), // Schedule for 1 day before the due date
+      reminderDate,
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'your_channel_id',
@@ -95,9 +75,8 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
           priority: Priority.high,
         ),
       ),
-      androidAllowWhileIdle: true,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
@@ -118,11 +97,14 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
     }
   }
 
-  void _markAsAdministered(String id, String vaccineName) {
-    setState(() {
-      _administeredVaccines.add(id);
-      _vaccinesCollection.doc(id).update({'administered': true});
-    });
+  Future<void> _markAsAdministered(String id, String vaccineName) async {
+    try {
+      await _vaccinesCollection.doc(id).update({'administered': true, 'administeredAt': FieldValue.serverTimestamp()});
+      await widget.notificationsPlugin.cancel(id.hashCode);
+      if (mounted) setState(() => _administeredVaccines.add(id));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update this vaccination.')));
+    }
   }
 
   void _onDateSelected(DateTime date) {
@@ -170,7 +152,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
       }
 
       return GestureDetector(
-        onTap: () => (),
+        onTap: () => _onDateSelected(date),
         child: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -226,7 +208,8 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(child: CircularProgressIndicator());
                   }
-                  if (snapshot.data!.docs.isEmpty) {
+                  if (snapshot.hasError) return const Center(child: Text('Could not load vaccinations.', style: TextStyle(color: Colors.white)));
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(child: Text('No vaccines found.'));
                   }
                   final List<Vaccine> vaccines = snapshot.data!.docs
@@ -237,7 +220,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
                     itemCount: vaccines.length,
                     itemBuilder: (ctx, index) {
                       final vaccine = vaccines[index];
-                      final isAdministered = _administeredVaccines.contains(vaccine.id) || (snapshot.data!.docs[index].data() as Map<String, dynamic>)['administered'] == true;
+                      final isAdministered = _administeredVaccines.contains(vaccine.id) || vaccine.administered;
                       final currentDate = DateTime.now();
                       final dateToBeAdministered = vaccine.dateToBeAdministered.toLocal();
                       final isPastDue = currentDate.isAfter(dateToBeAdministered);
@@ -258,9 +241,11 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isPastDue
-                                    ? 'Administered on: ${dateToBeAdministered.toString().split(' ')[0]}'
-                                    : 'Date to be administered: ${dateToBeAdministered.toString().split(' ')[0]}',
+                                isAdministered
+                                    ? 'Administered on: ${DateFormat.yMMMd().format(vaccine.administeredAt ?? dateToBeAdministered)}'
+                                    : isPastDue
+                                        ? 'Overdue since: ${DateFormat.yMMMd().format(dateToBeAdministered)}'
+                                        : 'Due: ${DateFormat.yMMMd().format(dateToBeAdministered)}',
                                 style: TextStyle(color: Colors.deepPurple),
                               ),
                               SizedBox(height: 4),
@@ -270,16 +255,8 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
                               ),
                             ],
                           ),
-                          trailing: isPastDue 
-                              ? Icon(Icons.check_circle_sharp, color: Colors.deepPurple)
-                              : Icon(Icons.pending_actions, color: Colors.deepPurple),
-                          onTap: () {
-                            try {
-                              LocalNotifications.showSimpleNotification(title: "vaccines", body: "body", payload: "payload");
-                            } catch (e) {
-                              print(e);
-                            }
-                          },
+                          trailing: Icon(isAdministered ? Icons.check_circle : (isPastDue ? Icons.warning_amber : Icons.pending_actions), color: isPastDue && !isAdministered ? Colors.orange : Colors.deepPurple),
+                          onTap: isAdministered ? null : () => _markAsAdministered(vaccine.id, vaccine.name),
                         ),
                       );
                     },
@@ -291,11 +268,14 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => AddVaccineScreen()),
           );
+          if (!mounted) return;
+          await _fetchVaccineDates();
+          await _scheduleExistingNotifications();
         },
         child: Icon(Icons.add),
         backgroundColor: Colors.transparent,

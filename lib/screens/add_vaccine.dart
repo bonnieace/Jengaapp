@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lottie/lottie.dart';
+import '../services/farm_scope.dart';
 
 class AddVaccineScreen extends StatefulWidget {
   @override
@@ -8,7 +9,6 @@ class AddVaccineScreen extends StatefulWidget {
 }
 
 class _AddVaccineScreenState extends State<AddVaccineScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late DateTime _selectedDate;
@@ -30,16 +30,17 @@ class _AddVaccineScreenState extends State<AddVaccineScreen> {
 
   Future<void> _addVaccine(String name, DateTime dateToBeAdministered, String routeOfAdministration) async {
     try {
-      await _firestore.collection('vaccines').add({
+      await FarmScope.flockCollection('vaccinations').add({
         'name': name,
         'dateToBeAdministered': dateToBeAdministered,
         'routeOfAdministration': routeOfAdministration,
+        'administered': false,
+        'createdAt': FieldValue.serverTimestamp(),
       });
-      Navigator.pop(context); // Go back to the vaccine list screen
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Vaccine added successfully')));
+      if (!mounted) return;
+      Navigator.pop(context);
     } catch (e) {
-      print('Error adding vaccine: $e');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding vaccine')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save this vaccination.')));
     }
   }
 
@@ -177,7 +178,7 @@ class _AddVaccineScreenState extends State<AddVaccineScreen> {
     ),
   ),
   onPressed: () {
-    if (_formKey.currentState!.validate() && _dateSelected) {
+    if (_formKey.currentState!.validate() && _dateSelected && _routeOfAdministration.trim().isNotEmpty) {
       _addVaccine(
         _nameController.text,
         _selectedDate,

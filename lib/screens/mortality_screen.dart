@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 import '../models/mortality.dart';
+import '../services/farm_scope.dart';
 
 class MortalityScreen extends StatefulWidget {
   @override
@@ -11,7 +12,6 @@ class MortalityScreen extends StatefulWidget {
 }
 
 class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProviderStateMixin {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Mortality> _mortalities = [];
   int _selectedIndex = 1;
   late TabController _tabController;
@@ -23,21 +23,52 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
     _fetchMortalityData();
   }
 
-  void _fetchMortalityData() async {
-    QuerySnapshot querySnapshot = await _firestore.collection('mortalities').orderBy('date').get();
-    setState(() {
+  Future<void> _fetchMortalityData() async {
+    try {
+      final querySnapshot = await FarmScope.flockCollection('mortalities').orderBy('date').get();
+      if (!mounted) return;
+      setState(() {
       _mortalities = querySnapshot.docs
           .map((doc) => Mortality.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
-    });
+      });
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not load mortality records.')));
+    }
   }
 
-  void _addMortality() async {
-    DateTime now = DateTime.now();
-    DocumentReference docRef = await _firestore.collection('mortalities').add({'date': now});
-    setState(() {
-      _mortalities.add(Mortality(id: docRef.id, date: now));
-    });
+  Future<void> _addMortality() async {
+    final quantity = TextEditingController(text: '1');
+    final cause = TextEditingController();
+    final note = TextEditingController();
+    DateTime date = DateTime.now();
+    final confirmed = await showDialog<bool>(context: context, builder: (dialogContext) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
+      title: const Text('Record mortality'),
+      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        TextField(controller: quantity, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Number of birds')),
+        TextField(controller: cause, decoration: const InputDecoration(labelText: 'Cause (optional)')),
+        TextField(controller: note, decoration: const InputDecoration(labelText: 'Note (optional)')),
+        const SizedBox(height: 12),
+        ListTile(contentPadding: EdgeInsets.zero, title: Text(DateFormat.yMMMd().format(date)), trailing: const Icon(Icons.calendar_month), onTap: () async {
+          final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime.now());
+          if (picked != null) setDialogState(() => date = picked);
+        }),
+      ])),
+      actions: [TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Cancel')), FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Save'))],
+    )));
+    if (confirmed != true) return;
+    final count = int.tryParse(quantity.text);
+    if (count == null || count < 1) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid number of birds.')));
+      return;
+    }
+    try {
+      final data = Mortality(id: '', date: date, quantity: count, cause: cause.text.trim(), note: note.text.trim());
+      final doc = await FarmScope.flockCollection('mortalities').add({...data.toMap(), 'createdAt': FieldValue.serverTimestamp()});
+      if (mounted) setState(() => _mortalities.add(Mortality(id: doc.id, date: date, quantity: count, cause: cause.text.trim(), note: note.text.trim())));
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not save mortality record.')));
+    }
   }
 
   void _onItemTapped(int index) {
@@ -83,9 +114,9 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
       }
 
       if (dataMap.containsKey(key)) {
-        dataMap[key] = dataMap[key]! + 1;
+        dataMap[key] = dataMap[key]! + mortality.quantity;
       } else {
-        dataMap[key] = 1;
+        dataMap[key] = mortality.quantity;
       }
     }
 
@@ -211,7 +242,7 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
                 children: [
                   Text('Total Counts'),
                   Text(
-                    _mortalities.length.toString(),
+                    _mortalities.fold<int>(0, (sum, item) => sum + item.quantity).toString(),
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -220,7 +251,7 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
                 children: [
                   Text('Daily Counts'),
                   Text(
-                    _mortalities.isNotEmpty ? _mortalities.length.toString() : '0',
+                    _mortalities.where((m) => DateUtils.isSameDay(m.date, DateTime.now())).fold<int>(0, (sum, item) => sum + item.quantity).toString(),
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -251,5 +282,3 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
 }
 
 }
-
-

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
 import 'package:intl/intl.dart';
+import '../services/farm_scope.dart';
 
 class ExpenseDetailsScreen extends StatefulWidget {
   final String category;
@@ -13,7 +14,6 @@ class ExpenseDetailsScreen extends StatefulWidget {
 }
 
 class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<FlSpot> _dataPoints = [];
   List<Map<String, dynamic>> _expenseDetails = [];
   double _totalExpenses = 0.0;
@@ -27,8 +27,7 @@ class _ExpenseDetailsScreenState extends State<ExpenseDetailsScreen> {
 
   void _fetchExpenseDetails() async {
     try {
-      final QuerySnapshot snapshot = await _firestore
-          .collection('expenses')
+      final QuerySnapshot snapshot = await FarmScope.collection('expenses')
           .where('category', isEqualTo: widget.category)
           .get();
 

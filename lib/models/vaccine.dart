@@ -7,12 +7,16 @@ class Vaccine {
   final String name;
   final DateTime dateToBeAdministered;
   final String routeOfAdministration;
+  final bool administered;
+  final DateTime? administeredAt;
 
   Vaccine({
     required this.id,
     required this.name,
     required this.dateToBeAdministered,
     required this.routeOfAdministration,
+    this.administered = false,
+    this.administeredAt,
   });
 
   factory Vaccine.fromFirestore(DocumentSnapshot doc) {
@@ -22,6 +26,8 @@ class Vaccine {
       name: data['name'] ?? '',
       dateToBeAdministered: (data['dateToBeAdministered'] as Timestamp).toDate(),
       routeOfAdministration: data['routeOfAdministration'] ?? '',
+      administered: data['administered'] == true,
+      administeredAt: (data['administeredAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -30,6 +36,8 @@ class Vaccine {
       'name': name,
       'dateToBeAdministered': dateToBeAdministered,
       'routeOfAdministration': routeOfAdministration,
+      'administered': administered,
+      if (administeredAt != null) 'administeredAt': administeredAt,
     };
   }
 }

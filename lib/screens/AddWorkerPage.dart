@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:lottie/lottie.dart';
+import '../services/farm_scope.dart';
 
 class AddWorkerPage extends StatefulWidget {
   @override
@@ -11,10 +12,9 @@ class AddWorkerPage extends StatefulWidget {
 class _AddWorkerPageState extends State<AddWorkerPage> {
   final _nameController = TextEditingController();
   final _roleController = TextEditingController();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<List<String>> _getRoles(String query) async {
-    final QuerySnapshot snapshot = await _firestore.collection('workers').get();
+    final QuerySnapshot snapshot = await FarmScope.collection('workers').get();
     final allRoles = snapshot.docs.map((doc) => doc['role'].toString()).toSet().toList();
     return allRoles
         .where((role) => role.toLowerCase().contains(query.toLowerCase()))
@@ -33,7 +33,7 @@ class _AddWorkerPageState extends State<AddWorkerPage> {
     }
 
     try {
-      await _firestore.collection('workers').add({
+      await FarmScope.collection('workers').add({
         'name': enteredName,
         'role': enteredRole,
         'checkedIn': false,

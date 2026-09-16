@@ -6,6 +6,8 @@ import '../models/expense.dart';
 import '../widgets/expense_list.dart';
 import './add_expenses_screen.dart';
 import 'expensedetails.dart';
+import '../services/farm_scope.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -15,7 +17,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late CollectionReference _expensesCollection;
   double _totalExpenses = 0.0;
   int _selectedIndex = 0;
@@ -27,12 +28,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _expensesCollection = _firestore.collection('expenses');
+    _expensesCollection = FarmScope.collection('expenses');
     _fetchCategories();
     _calculateTotalExpenses();
   }
   Stream<List<String>> _categoriesStream() {
-  return _firestore.collection('expenses').snapshots().map((snapshot) {
+  return FarmScope.collection('expenses').snapshots().map((snapshot) {
     return snapshot.docs
         .map((doc) => doc['category'] as String)
         .toSet()
@@ -41,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 Stream<Map<String, dynamic>> _expensesStream() {
-  return _firestore.collection('expenses').snapshots().map((snapshot) {
+  return FarmScope.collection('expenses').snapshots().map((snapshot) {
     double total = 0.0;
     Map<String, double> categoryDataMap = {};
     Map<String, Color> categoryColors = {};
@@ -69,7 +70,7 @@ Stream<Map<String, dynamic>> _expensesStream() {
 
   void _fetchCategories() async {
     try {
-      final QuerySnapshot snapshot = await _firestore.collection('expenses').get();
+      final QuerySnapshot snapshot = await FarmScope.collection('expenses').get();
       setState(() {
         _categories = snapshot.docs.map((doc) => doc['category'] as String).toSet().toList();
         _categories.insert(0, "All"); // Add "All" option at the beginning
@@ -100,9 +101,9 @@ Stream<Map<String, dynamic>> _expensesStream() {
       Map<String, Color> categoryColors = {};
       final QuerySnapshot snapshot;
       if (_selectedCategory == null || _selectedCategory == "All") {
-        snapshot = await _firestore.collection('expenses').get();
+        snapshot = await FarmScope.collection('expenses').get();
       } else {
-        snapshot = await _firestore.collection('expenses')
+        snapshot = await FarmScope.collection('expenses')
             .where('category', isEqualTo: _selectedCategory).get();
       }
       for (var doc in snapshot.docs) {
@@ -169,6 +170,11 @@ Widget build(BuildContext context) {
             builder: (_) => AddExpenseScreen(_addExpense),
           ));
         },
+      ),
+      IconButton(
+        tooltip: 'Sign out',
+        icon: const Icon(Icons.logout, color: Colors.white),
+        onPressed: () => FirebaseAuth.instance.signOut(),
       ),
     ],
     backgroundColor: Colors.deepPurple,
