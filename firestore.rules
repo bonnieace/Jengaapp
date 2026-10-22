@@ -77,7 +77,8 @@ service cloud.firestore {
           (!('eggStock' in request.resource.data) ||
             (request.resource.data.eggStock is int && request.resource.data.eggStock >= 0)) &&
           (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eggStock']) ||
-            (request.resource.data.eggMutationId is string &&
+            (resource.data.active == true && request.resource.data.active == true &&
+              request.resource.data.eggMutationId is string &&
               ((request.resource.data.eggMutationType == 'production' &&
                 getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)/eggProduction/$(request.resource.data.eggMutationId)).data.goodEggs is int) ||
                (request.resource.data.eggMutationType == 'sale' &&

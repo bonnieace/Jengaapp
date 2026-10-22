@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/flock.dart';
 import 'farm_scope.dart';
 
@@ -37,6 +38,13 @@ class FlockRepository {
     await batch.commit();
   }
 
+  Future<void> updateDetails(Flock flock, {required String name, required DateTime hatchedAt}) async {
+    if (name.trim().isEmpty || name.trim().length > 100 || hatchedAt.isAfter(DateTime.now())) {
+      throw ArgumentError('Enter a name and a valid hatch date.');
+    }
+    await _flocks.doc(flock.id).update({'name': name.trim(), 'hatchedAt': Timestamp.fromDate(hatchedAt)});
+  }
+
   Future<void> setActive(Flock flock, bool active) async {
     final doc = _flocks.doc(flock.id);
     await FirebaseFirestore.instance.runTransaction((tx) async {
@@ -49,5 +57,15 @@ class FlockRepository {
       tx.update(doc, {'active': active,
         'closedAt': active ? FieldValue.delete() : FieldValue.serverTimestamp()});
     });
+    if (!active) {
+      try {
+        final vaccines = await doc.collection('vaccinations').get();
+        for (final vaccine in vaccines.docs) {
+          await FlutterLocalNotificationsPlugin().cancel(vaccine.id.hashCode);
+        }
+      } catch (_) {
+        throw StateError('Batch closed. Some reminders on this device could not be cancelled.');
+      }
+    }
   }
 }

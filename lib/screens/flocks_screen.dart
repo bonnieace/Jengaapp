@@ -32,20 +32,20 @@ class _FlocksScreenState extends State<FlocksScreen> {
     }
   }
 
-  Future<void> _create() async {
+  Future<void> _create([Flock? existing]) async {
     final form = GlobalKey<FormState>();
-    final name = TextEditingController();
-    final birds = TextEditingController();
-    DateTime hatch = DateUtils.dateOnly(DateTime.now());
+    final name = TextEditingController(text: existing?.name);
+    final birds = TextEditingController(text: existing?.initialBirdCount.toString());
+    DateTime hatch = existing?.hatchedAt ?? DateUtils.dateOnly(DateTime.now());
     final confirmed = await showDialog<bool>(context: context, builder: (ctx) =>
       StatefulBuilder(builder: (ctx, setDialogState) => AlertDialog(
-        title: const Text('Add a flock or batch'),
+        title: Text(existing == null ? 'Add a flock or batch' : 'Edit flock details'),
         content: SingleChildScrollView(child: Form(key: form, child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Text('Keep birds of the same age together. Each flock has its own health records, egg production and stock.'),
           const SizedBox(height: 16),
           TextFormField(controller: name, maxLength: 100, decoration: const InputDecoration(labelText: 'Flock name', hintText: 'October chicks'),
             validator: (v) => (v ?? '').trim().isEmpty ? 'Enter a flock name' : null),
-          TextFormField(controller: birds, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Starting number of birds'),
+          TextFormField(controller: birds, readOnly: existing != null, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Starting number of birds'),
             validator: (v) { final n = int.tryParse(v ?? ''); return n == null || n < 1 || n > 1000000 ? 'Enter 1 to 1,000,000 birds' : null; }),
           ListTile(contentPadding: EdgeInsets.zero, title: const Text('Hatch date'), subtitle: Text(DateFormat.yMMMd().format(hatch)),
             trailing: const Icon(Icons.calendar_month), onTap: () async {
@@ -54,13 +54,15 @@ class _FlocksScreenState extends State<FlocksScreen> {
             }),
         ]))),
         actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () { if (form.currentState!.validate()) Navigator.pop(ctx, true); }, child: const Text('Create flock'))],
+          FilledButton(onPressed: () { if (form.currentState!.validate()) Navigator.pop(ctx, true); }, child: Text(existing == null ? 'Create flock' : 'Save details'))],
       )));
     final flockName = name.text;
     final count = int.tryParse(birds.text);
     name.dispose(); birds.dispose();
     if (confirmed == true && count != null && mounted) {
-      await _run(() => _repository.create(name: flockName, birds: count, hatchedAt: hatch));
+      await _run(() => existing == null
+          ? _repository.create(name: flockName, birds: count, hatchedAt: hatch)
+          : _repository.updateDetails(existing, name: flockName, hatchedAt: hatch));
     }
   }
 
@@ -101,7 +103,7 @@ class _FlocksScreenState extends State<FlocksScreen> {
         if (_busy) const LinearProgressIndicator(),
       ]);
     }),
-    floatingActionButton: FloatingActionButton.extended(onPressed: _busy ? null : _create, icon: const Icon(Icons.add), label: const Text('Add flock')),
+    floatingActionButton: FloatingActionButton.extended(onPressed: _busy ? null : () => _create(), icon: const Icon(Icons.add), label: const Text('Add flock')),
   );
 
   Widget _flockRow(FlockSummary row) {
@@ -119,6 +121,7 @@ class _FlocksScreenState extends State<FlocksScreen> {
         Wrap(spacing: 8, children: [
           FilledButton.tonal(onPressed: _busy ? null : () => _run(() => _repository.select(flock.id)),
             child: Text(flock.active ? 'Open flock' : 'View records')),
+          TextButton(onPressed: _busy ? null : () => _create(flock), child: const Text('Edit details')),
           TextButton(onPressed: _busy ? null : () => _close(flock), child: Text(flock.active ? 'Close batch' : 'Reopen batch')),
         ]),
       ]))),

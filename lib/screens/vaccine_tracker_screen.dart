@@ -66,7 +66,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
     await widget.notificationsPlugin.zonedSchedule(
       id.hashCode,
       'Vaccine Reminder',
-      'The $vaccineName vaccine is due on ${date.toLocal().toString().split(' ')[0]}',
+      'The $vaccineName vaccine for ${FarmScope.flockName} is due on ${date.toLocal().toString().split(' ')[0]}',
       reminderDate,
       const NotificationDetails(
         android: AndroidNotificationDetails(
