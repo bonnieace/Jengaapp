@@ -38,6 +38,7 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
   }
 
   Future<void> _addMortality() async {
+    if (!FarmScope.flockActive) return;
     final quantity = TextEditingController(text: '1');
     final cause = TextEditingController();
     final note = TextEditingController();
@@ -154,7 +155,7 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mortality Rate Tracker'),
+        title: Text('${FarmScope.flockName} · Mortality${FarmScope.flockActive ? '' : ' (closed)'}'),
   
       ),
       body: TabBarView(
@@ -164,7 +165,7 @@ class _MortalityScreenState extends State<MortalityScreen> with SingleTickerProv
          
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: !FarmScope.flockActive ? null : FloatingActionButton(
         backgroundColor: Colors.transparent,
         onPressed: _addMortality,
         child: Icon(Icons.add,color: Colors.cyan,),

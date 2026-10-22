@@ -48,6 +48,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
   }
 
   Future<void> _scheduleExistingNotifications() async {
+    if (!FarmScope.flockActive) return;
     final QuerySnapshot snapshot = await _vaccinesCollection.get();
     for (var doc in snapshot.docs) {
       final vaccine = Vaccine.fromFirestore(doc);
@@ -191,7 +192,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
         elevation: 0,
         backgroundColor: Colors.transparent,
         title: Text(
-          'Vaccine Tracker',
+          '${FarmScope.flockName} · Vaccinations${FarmScope.flockActive ? '' : ' (closed)'}',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -256,7 +257,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
                             ],
                           ),
                           trailing: Icon(isAdministered ? Icons.check_circle : (isPastDue ? Icons.warning_amber : Icons.pending_actions), color: isPastDue && !isAdministered ? Colors.orange : Colors.deepPurple),
-                          onTap: isAdministered ? null : () => _markAsAdministered(vaccine.id, vaccine.name),
+                          onTap: isAdministered || !FarmScope.flockActive ? null : () => _markAsAdministered(vaccine.id, vaccine.name),
                         ),
                       );
                     },
@@ -267,7 +268,7 @@ class _VaccineTrackerScreenState extends State<VaccineTrackerScreen> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: !FarmScope.flockActive ? null : FloatingActionButton(
         onPressed: () async {
           await Navigator.push(
             context,

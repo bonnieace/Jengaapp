@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../services/farm_scope.dart';
 import 'home_screens.dart';
+import '../models/flock.dart';
+import 'flocks_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -45,18 +47,24 @@ class _FarmBootstrap extends StatelessWidget {
           return const _BootstrapError();
         }
         FarmScope.tenantId = tenantId;
-        return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          future: FirebaseFirestore.instance
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
               .collection('tenants').doc(tenantId).collection('flocks')
-              .where('active', isEqualTo: true).limit(1).get(),
+              .snapshots(),
           builder: (context, flockSnapshot) {
             if (flockSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(body: Center(child: CircularProgressIndicator()));
             }
-            final docs = flockSnapshot.data?.docs ?? [];
-            if (docs.isEmpty) return const FlockSetupScreen();
-            FarmScope.flockId = docs.first.id;
-            return const HomeScreen();
+            if (flockSnapshot.hasError) return const _BootstrapError();
+            final flocks = (flockSnapshot.data?.docs ?? [])
+                .map((doc) => Flock.fromMap(doc.id, doc.data())).toList()
+              ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+            final flock = selectFlock(flocks, data?['activeFlockId'] as String?);
+            if (flock == null) return const FlockSetupScreen();
+            FarmScope.flockId = flock.id;
+            FarmScope.flockName = flock.name;
+            FarmScope.flockActive = flock.active;
+            return HomeScreen(key: ValueKey('${flock.id}:${flock.active}'));
           },
         );
       },
@@ -153,33 +161,8 @@ class _AuthScreenState extends State<AuthScreen> {
   );
 }
 
-class FlockSetupScreen extends StatefulWidget {
+class FlockSetupScreen extends StatelessWidget {
   const FlockSetupScreen({super.key});
   @override
-  State<FlockSetupScreen> createState() => _FlockSetupScreenState();
-}
-
-class _FlockSetupScreenState extends State<FlockSetupScreen> {
-  final _name = TextEditingController();
-  final _count = TextEditingController();
-  bool _busy = false;
-
-  Future<void> _save() async {
-    final count = int.tryParse(_count.text);
-    if (_name.text.trim().isEmpty || count == null || count < 1) return;
-    setState(() => _busy = true);
-    try {
-      final doc = await FarmScope.collection('flocks').add({'name': _name.text.trim(), 'initialBirdCount': count, 'eggStock': 0, 'startedAt': Timestamp.now(), 'active': true, 'createdAt': FieldValue.serverTimestamp()});
-      FarmScope.flockId = doc.id;
-      if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-    } finally { if (mounted) setState(() => _busy = false); }
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Set up your first flock')), body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 420), child: Column(children: [
-    const Text('Create an active batch before recording mortality or vaccinations.'), const SizedBox(height: 20),
-    TextField(controller: _name, decoration: const InputDecoration(labelText: 'Flock or batch name', border: OutlineInputBorder())), const SizedBox(height: 12),
-    TextField(controller: _count, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Starting number of birds', border: OutlineInputBorder())), const SizedBox(height: 20),
-    SizedBox(width: double.infinity, child: FilledButton(onPressed: _busy ? null : _save, child: Text(_busy ? 'Saving…' : 'Create flock'))),
-  ])))));
+  Widget build(BuildContext context) => const FlocksScreen();
 }

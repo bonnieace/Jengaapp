@@ -161,8 +161,9 @@ Stream<Map<String, dynamic>> _expensesStream() {
 Widget build(BuildContext context) {
   return Scaffold(
   appBar: AppBar(
-    title: const Text('Expense Tracker', style: TextStyle(fontFamily: 'Roboto', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white)),
+    title: const Text('Farm Expenses', style: TextStyle(fontFamily: 'Roboto', fontSize: 24, fontWeight: FontWeight.bold,color: Colors.white)),
     actions: [
+      IconButton(tooltip: 'Manage flocks', icon: const Icon(Icons.pets_outlined, color: Colors.white), onPressed: () => Navigator.pushNamed(context, '/flocks')),
       IconButton(
         tooltip: 'Egg production and sales',
         icon: const Icon(Icons.egg_outlined, color: Colors.white),
@@ -213,6 +214,17 @@ Widget build(BuildContext context) {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  ListTile(
+                    leading: const Icon(Icons.pets_outlined),
+                    title: Text(FarmScope.flockName),
+                    subtitle: Text(FarmScope.flockActive ? 'Selected flock · tap to switch or add batches' : 'Closed batch · records are read-only'),
+                    trailing: const Icon(Icons.swap_horiz),
+                    onTap: () => Navigator.pushNamed(context, '/flocks'),
+                  ),
+                  Wrap(children: [
+                    TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/mortalityScreen'), icon: const Icon(Icons.monitor_heart_outlined), label: const Text('Mortality')),
+                    TextButton.icon(onPressed: () => Navigator.pushNamed(context, '/vaccineTracker'), icon: const Icon(Icons.vaccines_outlined), label: const Text('Vaccinations')),
+                  ]),
                   Card(
                     margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
                     child: ListTile(

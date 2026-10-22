@@ -18,6 +18,23 @@ service cloud.firestore {
       return value is int ? value : 0;
     }
 
+    function activeFlock(tenantId, flockId) {
+      return get(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)).data.active == true &&
+        getAfter(/databases/$(database)/documents/tenants/$(tenantId)/flocks/$(flockId)).data.active == true;
+    }
+    function validFlock(data) {
+      return data.keys().hasAll(['name', 'initialBirdCount', 'active', 'eggStock', 'startedAt', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'initialBirdCount', 'active', 'eggStock', 'startedAt', 'createdAt',
+          'hatchedAt', 'closedAt', 'eggMutationId', 'eggMutationType', 'lifetimeGoodEggs',
+          'lifetimeEggsSold', 'lifetimeEggRevenue', 'updatedAt']) &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.initialBirdCount is int && data.initialBirdCount > 0 && data.initialBirdCount <= 1000000 &&
+        data.active is bool && data.eggStock is int && data.eggStock >= 0 &&
+        data.startedAt is timestamp && data.createdAt is timestamp &&
+        (!('hatchedAt' in data) || (data.hatchedAt is timestamp && data.hatchedAt <= request.time)) &&
+        (!('closedAt' in data) || data.closedAt is timestamp);
+    }
+
     match /users/{uid} {
       allow create, read, update: if signedIn() && request.auth.uid == uid;
       allow delete: if false;
@@ -49,8 +66,14 @@ service cloud.firestore {
       }
 
       match /flocks/{flockId} {
-        allow read, create: if isMember(tenantId);
-        allow update: if isMember(tenantId) &&
+        allow read: if isMember(tenantId);
+        allow create: if isMember(tenantId) && validFlock(request.resource.data) &&
+          request.resource.data.active == true && request.resource.data.eggStock == 0;
+        allow update: if isMember(tenantId) && validFlock(request.resource.data) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.initialBirdCount == resource.data.initialBirdCount &&
+          (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['active']) ||
+            (eggStockBefore(tenantId, flockId) == 0 && request.resource.data.eggStock == 0)) &&
           (!('eggStock' in request.resource.data) ||
             (request.resource.data.eggStock is int && request.resource.data.eggStock >= 0)) &&
           (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['eggStock']) ||
@@ -64,16 +87,18 @@ service cloud.firestore {
         allow delete: if false;
 
         match /mortalities/{mortalityId} {
-          allow read, write: if isMember(tenantId);
+          allow read: if isMember(tenantId);
+          allow write: if isMember(tenantId) && activeFlock(tenantId, flockId);
         }
 
         match /vaccinations/{vaccinationId} {
-          allow read, write: if isMember(tenantId);
+          allow read: if isMember(tenantId);
+          allow write: if isMember(tenantId) && activeFlock(tenantId, flockId);
         }
 
         match /eggProduction/{productionId} {
           allow read: if isMember(tenantId);
-          allow create: if isMember(tenantId) &&
+          allow create: if isMember(tenantId) && activeFlock(tenantId, flockId) &&
             request.resource.data.goodEggs is int && request.resource.data.goodEggs >= 0 &&
             request.resource.data.crackedEggs is int && request.resource.data.crackedEggs >= 0 &&
             request.resource.data.dirtyEggs is int && request.resource.data.dirtyEggs >= 0 &&
@@ -88,7 +113,7 @@ service cloud.firestore {
 
         match /eggSales/{saleId} {
           allow read: if isMember(tenantId);
-          allow create: if isMember(tenantId) &&
+          allow create: if isMember(tenantId) && activeFlock(tenantId, flockId) &&
             request.resource.data.quantity is int && request.resource.data.quantity > 0 &&
             request.resource.data.quantity <= eggStockBefore(tenantId, flockId) &&
             request.resource.data.totalAmount ==
@@ -106,7 +131,7 @@ service cloud.firestore {
 
         match /eggStockAdjustments/{adjustmentId} {
           allow read: if isMember(tenantId);
-          allow create: if isMember(tenantId) &&
+          allow create: if isMember(tenantId) && activeFlock(tenantId, flockId) &&
             request.resource.data.delta is int && request.resource.data.delta != 0 &&
             request.resource.data.reason is string && request.resource.data.reason.size() >= 3 &&
             request.resource.data.stockBefore == eggStockBefore(tenantId, flockId) &&

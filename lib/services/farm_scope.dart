@@ -8,6 +8,8 @@ class FarmScope {
 
   static String? tenantId;
   static String? flockId;
+  static String flockName = 'Flock';
+  static bool flockActive = true;
 
   static DocumentReference<Map<String, dynamic>> get tenant {
     final id = tenantId;
@@ -18,6 +20,12 @@ class FarmScope {
   static CollectionReference<Map<String, dynamic>> collection(String name) =>
       tenant.collection(name);
 
+  static DocumentReference<Map<String, dynamic>> get flock {
+    final id = flockId;
+    if (id == null) throw StateError('Select a flock first.');
+    return tenant.collection('flocks').doc(id);
+  }
+
   static CollectionReference<Map<String, dynamic>> flockCollection(String name) {
     final id = flockId;
     if (id == null) throw StateError('An active flock is required.');
@@ -27,5 +35,7 @@ class FarmScope {
   static void clear() {
     tenantId = null;
     flockId = null;
+    flockName = 'Flock';
+    flockActive = true;
   }
 }

@@ -4,15 +4,13 @@ import 'farm_scope.dart';
 
 class EggRepository {
   EggRepository({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _flockRef = FarmScope.flock;
 
   final FirebaseFirestore _firestore;
 
-  DocumentReference<Map<String, dynamic>> get _flock {
-    final flockId = FarmScope.flockId;
-    if (flockId == null) throw StateError('An active flock is required.');
-    return FarmScope.tenant.collection('flocks').doc(flockId);
-  }
+  final DocumentReference<Map<String, dynamic>> _flockRef;
+  DocumentReference<Map<String, dynamic>> get _flock => _flockRef;
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> watchFlock() =>
       _flock.snapshots();
@@ -45,6 +43,7 @@ class EggRepository {
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(_flock);
       if (!snapshot.exists) throw StateError('The active flock no longer exists.');
+      if (snapshot.data()?['active'] != true) throw StateError('This batch is closed. Reopen it before recording activity.');
       final currentStock = (snapshot.data()?['eggStock'] as num?)?.toInt() ?? 0;
       transaction.set(record, {
         'recordedFor': Timestamp.fromDate(recordedFor),
@@ -97,6 +96,7 @@ class EggRepository {
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(_flock);
       if (!snapshot.exists) throw StateError('The active flock no longer exists.');
+      if (snapshot.data()?['active'] != true) throw StateError('This batch is closed. Reopen it before recording activity.');
       final currentStock = (snapshot.data()?['eggStock'] as num?)?.toInt() ?? 0;
       if (quantity > currentStock) {
         throw StateError('Only $currentStock sellable eggs are currently available.');
@@ -134,6 +134,7 @@ class EggRepository {
     await _firestore.runTransaction((transaction) async {
       final snapshot = await transaction.get(_flock);
       if (!snapshot.exists) throw StateError('The active flock no longer exists.');
+      if (snapshot.data()?['active'] != true) throw StateError('This batch is closed. Reopen it before recording activity.');
       final currentStock = (snapshot.data()?['eggStock'] as num?)?.toInt() ?? 0;
       final correctedStock = currentStock + delta;
       if (correctedStock < 0) {

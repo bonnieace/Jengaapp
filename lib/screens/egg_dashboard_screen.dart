@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../services/egg_repository.dart';
+import '../services/farm_scope.dart';
 
 class EggDashboardScreen extends StatefulWidget {
   const EggDashboardScreen({super.key});
@@ -20,7 +21,7 @@ class _EggDashboardScreenState extends State<EggDashboardScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Egg Production & Sales'),
+          title: Text('${FarmScope.flockName} · Eggs${FarmScope.flockActive ? '' : ' (closed)'}'),
           bottom: const TabBar(tabs: [
             Tab(icon: Icon(Icons.egg_outlined), text: 'Production'),
             Tab(icon: Icon(Icons.point_of_sale), text: 'Sales'),
@@ -35,7 +36,7 @@ class _EggDashboardScreenState extends State<EggDashboardScreen> {
             _AdjustmentList(repository: _repository),
           ])),
         ]),
-        floatingActionButton: Builder(builder: (context) {
+        floatingActionButton: !FarmScope.flockActive ? null : Builder(builder: (context) {
           final tab = DefaultTabController.of(context);
           return AnimatedBuilder(
             animation: tab,
