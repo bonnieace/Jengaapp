@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "164977897143",
-    "project_id": "jenga-7e495",
-    "storage_bucket": "jenga-7e495.appspot.com"
+    "project_number": "902998349212",
+    "project_id": "chickfarm-uzanet",
+    "storage_bucket": "chickfarm-uzanet.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:164977897143:android:2c1d4e7bf4671dd33fe732",
+        "mobilesdk_app_id": "1:902998349212:android:0d6118a9368998463c2459",
         "android_client_info": {
           "package_name": "com.example.expense_tracker"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBDG-_n1-fuprmES99xerPFeqWcMxHxSiM"
+          "current_key": "AIzaSyBlab8gvA7D2_qqkaIPE-szV4w8yMnko50"
         }
       ],
       "services": {

@@ -3,20 +3,20 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "jenga-7e495",
-          "appId": "1:164977897143:android:2c1d4e7bf4671dd33fe732",
+          "projectId": "chickfarm-uzanet",
+          "appId": "1:902998349212:android:0d6118a9368998463c2459",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "jenga-7e495",
+          "projectId": "chickfarm-uzanet",
           "configurations": {
-            "android": "1:164977897143:android:2c1d4e7bf4671dd33fe732",
-            "ios": "1:164977897143:ios:6c1352c5ff44ca9d3fe732",
-            "macos": "1:164977897143:ios:6c1352c5ff44ca9d3fe732",
-            "web": "1:164977897143:web:f047f9666410a75b3fe732",
-            "windows": "1:164977897143:web:8318f385bc136dec3fe732"
+            "web": "1:902998349212:web:a4a78aef8bd60f7e3c2459",
+            "android": "1:902998349212:android:0d6118a9368998463c2459",
+            "ios": "1:902998349212:ios:851a9820b89726c63c2459",
+            "macos": "1:902998349212:ios:851a9820b89726c63c2459",
+            "windows": "1:902998349212:web:a4a78aef8bd60f7e3c2459"
           }
         }
       }
@@ -39,5 +39,10 @@
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true
+    }
   }
 }

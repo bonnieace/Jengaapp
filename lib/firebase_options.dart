@@ -41,48 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAV2_frTOeoFJA13-MYBg8AfQYyWBuDTK0',
-    appId: '1:164977897143:web:f047f9666410a75b3fe732',
-    messagingSenderId: '164977897143',
-    projectId: 'jenga-7e495',
-    authDomain: 'jenga-7e495.firebaseapp.com',
-    storageBucket: 'jenga-7e495.appspot.com',
-    measurementId: 'G-EV8BKZ0D88',
+    apiKey: 'AIzaSyCmOj84Uww1oqQjIxrt5T2ODifTF8FNVbo',
+    appId: '1:902998349212:web:a4a78aef8bd60f7e3c2459',
+    messagingSenderId: '902998349212',
+    projectId: 'chickfarm-uzanet',
+    authDomain: 'chickfarm-uzanet.firebaseapp.com',
+    storageBucket: 'chickfarm-uzanet.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBDG-_n1-fuprmES99xerPFeqWcMxHxSiM',
-    appId: '1:164977897143:android:2c1d4e7bf4671dd33fe732',
-    messagingSenderId: '164977897143',
-    projectId: 'jenga-7e495',
-    storageBucket: 'jenga-7e495.appspot.com',
+    apiKey: 'AIzaSyBlab8gvA7D2_qqkaIPE-szV4w8yMnko50',
+    appId: '1:902998349212:android:0d6118a9368998463c2459',
+    messagingSenderId: '902998349212',
+    projectId: 'chickfarm-uzanet',
+    storageBucket: 'chickfarm-uzanet.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCn2Q1LI2w9wqOiHkvyOkwAhyVr19566t4',
-    appId: '1:164977897143:ios:6c1352c5ff44ca9d3fe732',
-    messagingSenderId: '164977897143',
-    projectId: 'jenga-7e495',
-    storageBucket: 'jenga-7e495.appspot.com',
+    apiKey: 'AIzaSyBshje2E1zH-BaRXXu9tRvdtgfsgwcl-GQ',
+    appId: '1:902998349212:ios:851a9820b89726c63c2459',
+    messagingSenderId: '902998349212',
+    projectId: 'chickfarm-uzanet',
+    storageBucket: 'chickfarm-uzanet.firebasestorage.app',
     iosBundleId: 'com.example.expenseTracker',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyCn2Q1LI2w9wqOiHkvyOkwAhyVr19566t4',
-    appId: '1:164977897143:ios:6c1352c5ff44ca9d3fe732',
-    messagingSenderId: '164977897143',
-    projectId: 'jenga-7e495',
-    storageBucket: 'jenga-7e495.appspot.com',
+    apiKey: 'AIzaSyBshje2E1zH-BaRXXu9tRvdtgfsgwcl-GQ',
+    appId: '1:902998349212:ios:851a9820b89726c63c2459',
+    messagingSenderId: '902998349212',
+    projectId: 'chickfarm-uzanet',
+    storageBucket: 'chickfarm-uzanet.firebasestorage.app',
     iosBundleId: 'com.example.expenseTracker',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAV2_frTOeoFJA13-MYBg8AfQYyWBuDTK0',
-    appId: '1:164977897143:web:8318f385bc136dec3fe732',
-    messagingSenderId: '164977897143',
-    projectId: 'jenga-7e495',
-    authDomain: 'jenga-7e495.firebaseapp.com',
-    storageBucket: 'jenga-7e495.appspot.com',
-    measurementId: 'G-KGKBXW7YES',
+    apiKey: 'AIzaSyCmOj84Uww1oqQjIxrt5T2ODifTF8FNVbo',
+    appId: '1:902998349212:web:a4a78aef8bd60f7e3c2459',
+    messagingSenderId: '902998349212',
+    projectId: 'chickfarm-uzanet',
+    authDomain: 'chickfarm-uzanet.firebaseapp.com',
+    storageBucket: 'chickfarm-uzanet.firebasestorage.app',
   );
 }

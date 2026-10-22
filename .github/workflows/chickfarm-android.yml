@@ -19,10 +19,10 @@ jobs:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           if [ -z "$FIREBASE_TOKEN" ]; then
-            echo "::error::FIREBASE_TOKEN is missing. Authorize Firebase deployment for project jenga-7e495."
+            echo "::error::FIREBASE_TOKEN is missing. Authorize Firebase deployment for project chickfarm-uzanet."
             exit 1
           fi
-          npx --yes firebase-tools deploy --only firestore --project jenga-7e495 --non-interactive
+          npx --yes firebase-tools deploy --only firestore,auth --project chickfarm-uzanet --non-interactive
   apk:
     runs-on: ubuntu-22.04
     steps:
@@ -39,9 +39,9 @@ jobs:
       - run: flutter pub get
       - run: flutter test
       - name: Build installable test APK
-        run: flutter build apk --debug --build-name=1.0.1 --build-number=${{ github.run_number }}
+        run: flutter build apk --debug --build-name=1.0.2 --build-number=${{ github.run_number }}
       - uses: actions/upload-artifact@v4
         with:
-          name: ChickFarm-1.0.1-test
+          name: ChickFarm-1.0.2-test
           path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 7
