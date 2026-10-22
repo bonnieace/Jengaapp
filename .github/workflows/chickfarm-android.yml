@@ -1,0 +1,47 @@
+name: ChickFarm Android
+on:
+  push:
+    branches: [production-hardening]
+    paths-ignore: ['README.md']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firebase:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Deploy Firestore rules and indexes
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: |
+          if [ -z "$FIREBASE_TOKEN" ]; then
+            echo "::error::FIREBASE_TOKEN is missing. Authorize Firebase deployment for project jenga-7e495."
+            exit 1
+          fi
+          npx --yes firebase-tools deploy --only firestore --project jenga-7e495 --non-interactive
+  apk:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+      - name: Build installable test APK
+        run: flutter build apk --debug --build-name=1.0.1 --build-number=${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ChickFarm-1.0.1-test
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
